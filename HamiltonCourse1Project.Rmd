@@ -1,0 +1,132 @@
+---
+output: 
+  html_document: 
+    keep_md: yes
+---
+Hamilton Course Project 1 MarkDown Report
+===========================
+
+
+```{r}
+library("plyr")
+library("dplyr")
+library("ggplot2")
+
+#Load Data
+adata <- read.csv("activity.csv")
+
+#Transform Data to get mean steps per data
+daygroupeddata <- group_by(adata,date)
+
+#Calculate total steps per day
+totalstepsperday <- summarize(daygroupeddata, steps = sum(steps))
+head(totalstepsperday)
+
+#Create Histogram of total steps taken each day of orginal data set
+qplot(steps, data = totalstepsperday)
+
+#Calculate mean of total steps per day
+meanstepsperday <- mean(totalstepsperday$steps, na.rm = TRUE)
+meanstepsperday
+
+#Calculate the median of total steps per day
+medianstepsperday <- median(totalstepsperday$steps, na.rm = TRUE)
+medianstepsperday
+
+
+
+
+#Transform Data to get interval and date matched up
+intervalgroupeddata <- group_by(adata,interval)
+head(intervalgroupeddata)
+
+#Calculate average number steps per interval per day
+totalstepsperinterval <- summarize(intervalgroupeddata, steps = mean(steps, na.rm = TRUE))
+head(totalstepsperinterval)
+
+#Plot average number of steps per interval per day
+ggplot(totalstepsperinterval, aes(x=interval,y=steps)) + geom_line()
+
+#Identify the max average step interval---------------------
+#Identify the largest step count
+maxvalue <- max(totalstepsperinterval$steps)
+#-----------------------------------------------------------
+
+
+#Locate the interval with the largest step count
+maxintervaldata <- totalstepsperinterval[which(totalstepsperinterval$steps == maxvalue),]
+head(maxintervaldata)
+
+#Total number of NAs in dataset
+sum(is.na(adata$steps))
+
+#Create a new dataset with the NAs replaced with the mean of the interval-------------------------- 
+# Create a copy of the original set
+newadata = adata
+
+#For each row, identify of it has a NA. If so, replace the value with the mean value for the interval
+for(i in 1:nrow(adata))
+{
+  if (is.na(adata[i,1]) == TRUE )
+  {
+    intervalvalue = adata[i,3]
+    
+    locateinterval = totalstepsperinterval[which(totalstepsperinterval$interval == intervalvalue),]
+    
+    newadata[i,1] = locateinterval[1,2]
+  }
+}
+#-----------------------------------------------------------------------------------------------------
+
+
+#Transform New Data set to get mean steps per data
+NewDataSet_daygroupeddata <- group_by(newadata,date)
+head(NewDataSet_daygroupeddata)
+
+#Calculate total steps per day
+NewDataSet_totalstepsperday <- summarize(NewDataSet_daygroupeddata, steps = sum(steps))
+head(NewDataSet_totalstepsperday)
+
+#Create Histogram of total steps taken each day of new data set
+qplot(steps, data = NewDataSet_totalstepsperday)
+
+#Calculate mean of total steps per day of new data set
+NewDataSet_meanstepsperday <- mean(NewDataSet_totalstepsperday$steps)
+head(NewDataSet_meanstepsperday)
+
+#Calculate the median of total steps per day
+NewDataSet_medianstepsperday <- median(NewDataSet_totalstepsperday$steps)
+head(NewDataSet_medianstepsperday)
+
+#Converted the date column to a date object
+newadata$date <- as.Date(newadata$date)
+
+#For each row in the new data set, I created a new column called DayType
+#that represents of the date is a weekday or a weekend
+for(i in 1:nrow(newadata))
+{
+  if ((weekdays(newadata[i,2]) == "Saturday") || (weekdays(newadata[i,2]) == "Sunday"))
+  {
+    newadata$DayType[i] = "Weekend"
+  }
+  else
+  {
+    newadata$DayType[i] = "Weekday"
+  }
+}
+
+#I converted the new DayType column to a factor variable
+newadata$DayType <- as.factor(newadata$DayType)
+
+#Transform Data to get interval and date matched up
+weekend_intervalgroupeddata <- group_by(newadata,interval,DayType)
+head(weekend_intervalgroupeddata)
+
+#Calculate average number steps per interval per day
+weekend_totalstepsperinterval <- summarize(weekend_intervalgroupeddata, steps = mean(steps, na.rm = TRUE))
+head(weekend_totalstepsperinterval)
+
+#Plot average number of steps per interval per day in a panel plot
+ggplot(weekend_totalstepsperinterval, aes(x=interval,y=steps)) + geom_line()+
+  facet_wrap(~DayType, nrow = 2)
+```
